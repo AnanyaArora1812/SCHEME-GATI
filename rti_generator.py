@@ -18,7 +18,6 @@ def generate_rti(scheme: dict, output_path: str = "RTI_Application.pdf"):
         leftMargin=25*mm, rightMargin=25*mm,
         topMargin=20*mm, bottomMargin=20*mm
     )
-
     W = A4[0] - 50*mm
     styles = getSampleStyleSheet()
 
