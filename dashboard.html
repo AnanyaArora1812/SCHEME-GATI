@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheme Gati — District Collector Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0d0d0d; color: #f0f0f0; font-family: 'Segoe UI', sans-serif; }
+
+    /* Navbar */
+    .navbar-custom { background: #111; border-bottom: 2px solid #e10600; padding: 10px 24px; }
+    .navbar-brand { color: #fff !important; font-weight: 800; font-size: 1.3rem; letter-spacing: 1px; }
+    .navbar-brand span { color: #e10600; }
+    .nav-badge { background: #e10600; color: #fff; border-radius: 4px; padding: 2px 10px; font-size: 0.75rem; font-weight: 700; margin-left: 10px; }
+    .officer-name { color: #aaa; font-size: 0.85rem; }
+
+    /* Safety Car Banner */
+    .safety-car-banner { background: linear-gradient(90deg, #ff6b00, #e10600); color: #fff; padding: 10px 24px; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.85} }
+
+    /* Stat Cards */
+    .stat-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 18px 20px; }
+    .stat-number { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: #888; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Filters */
+    .filter-bar { background: #141414; border-bottom: 1px solid #222; padding: 10px 24px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { background: #222; border: 1px solid #333; color: #ccc; border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+    .filter-btn:hover, .filter-btn.active { background: #e10600; border-color: #e10600; color: #fff; }
+    .filter-btn.f-green.active  { background: #198754; border-color: #198754; }
+    .filter-btn.f-yellow.active { background: #ffc107; border-color: #ffc107; color: #000; }
+    .filter-btn.f-red.active    { background: #dc3545; border-color: #dc3545; }
+    .filter-btn.f-black.active  { background: #444; border-color: #666; }
+
+    /* Scheme Cards */
+    .scheme-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 18px; margin-bottom: 14px; position: relative; transition: border-color 0.2s; }
+    .scheme-card:hover { border-color: #444; }
+    .scheme-card.flag-green    { border-left: 4px solid #198754; }
+    .scheme-card.flag-yellow   { border-left: 4px solid #ffc107; }
+    .scheme-card.flag-red      { border-left: 4px solid #dc3545; }
+    .scheme-card.flag-black    { border-left: 4px solid #666; background: #111; }
+    .scheme-card.flag-chequered{ border-left: 4px solid #fff; }
+
+    .flag-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; }
+    .badge-green     { background: #0d3320; color: #2ecc71; }
+    .badge-yellow    { background: #332a00; color: #ffc107; }
+    .badge-red       { background: #330a0a; color: #ff4444; }
+    .badge-black     { background: #1a1a1a; color: #aaa; border: 1px solid #444; }
+    .badge-chequered { background: #1a1a1a; color: #fff; border: 1px solid #fff; }
+
+    .scheme-name { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+    .scheme-meta { font-size: 0.78rem; color: #777; margin-bottom: 10px; }
+
+    .progress-bar-custom { background: #222; border-radius: 4px; height: 6px; margin: 6px 0 10px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+    .fill-green     { background: #198754; }
+    .fill-yellow    { background: #ffc107; }
+    .fill-red       { background: #dc3545; }
+    .fill-black     { background: #555; }
+    .fill-chequered { background: #fff; }
+
+    .scheme-stat { font-size: 0.78rem; color: #888; }
+    .scheme-stat strong { color: #ddd; }
+
+    .penalty-badge { background: #330000; color: #ff6b6b; border-radius: 4px; padding: 1px 7px; font-size: 0.72rem; font-weight: 700; }
+    .rti-btn { background: #e10600; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .rti-btn:hover { background: #c00; }
+
+    /* Constructor Standings */
+    .standings-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 18px; }
+    .standings-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #aaa; margin-bottom: 14px; }
+    .ward-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .ward-rank { font-size: 1.1rem; font-weight: 800; color: #e10600; width: 22px; }
+    .ward-name { font-size: 0.82rem; flex: 1; color: #ddd; }
+    .ward-bar-bg { background: #222; border-radius: 3px; height: 8px; flex: 2; }
+    .ward-bar { height: 100%; border-radius: 3px; }
+    .ward-pct { font-size: 0.78rem; color: #888; width: 36px; text-align: right; }
+
+    /* RTI Modal */
+    .rti-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; align-items: center; justify-content: center; }
+    .rti-modal.show { display: flex; }
+    .rti-box { background: #1a1a1a; border: 1px solid #444; border-radius: 14px; padding: 30px; max-width: 500px; width: 90%; }
+    .rti-box h5 { color: #e10600; font-weight: 800; margin-bottom: 6px; }
+    .rti-field { background: #111; border-radius: 6px; padding: 10px 14px; margin: 6px 0; font-size: 0.82rem; color: #ccc; border-left: 3px solid #333; }
+    .rti-field strong { color: #fff; display: block; font-size: 0.72rem; color: #777; margin-bottom: 2px; }
+
+    .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #555; margin: 20px 0 10px; font-weight: 700; }
+
+    /* Safety car scheme highlight */
+    .safety-car-highlight { border: 1px solid #ff6b00 !important; background: #1a0f00 !important; }
+    .safety-car-tag { background: #ff6b00; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar-custom d-flex justify-content-between align-items-center">
+  <div>
+    <span class="navbar-brand">SCHEME <span>GATI</span></span>
+    <span class="nav-badge">PIT WALL</span>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <span class="officer-name">COMMANDER K. SINGH &nbsp;|&nbsp; District Collector, Kanpur Urban</span>
+    <span style="background:#1a1a1a;border:1px solid #333;border-radius:20px;padding:3px 12px;font-size:0.75rem;color:#2ecc71;">● LIVE</span>
+  </div>
+</nav>
+
+<!-- Safety Car Banner -->
+<div class="safety-car-banner">
+  🚨 &nbsp; SAFETY CAR MODE ACTIVE &nbsp;|&nbsp; 2 schemes flagged &nbsp;|&nbsp; Contractor payments on hold &nbsp;|&nbsp; Nodal officer alerted
+</div>
+
+<!-- Stats Row -->
+<div class="container-fluid px-4 pt-3">
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-number" style="color:#f0f0f0">12</div>
+        <div class="stat-label">Active Schemes</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-number" style="color:#dc3545">4</div>
+        <div class="stat-label">Need Attention</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-number" style="color:#ffc107">₹88.5 Cr</div>
+        <div class="stat-label">Total Budget</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="stat-number" style="color:#e10600">2</div>
+        <div class="stat-label">Payments Frozen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar rounded mb-3 px-3 py-2" style="background:#141414;border:1px solid #222;">
+    <span style="font-size:0.78rem;color:#666;margin-right:6px;">FILTER:</span>
+    <button class="filter-btn active" onclick="filterSchemes('all', this)">All (12)</button>
+    <button class="filter-btn f-green"     onclick="filterSchemes('green', this)">🟢 Green (4)</button>
+    <button class="filter-btn f-yellow"    onclick="filterSchemes('yellow', this)">🟡 Yellow (2)</button>
+    <button class="filter-btn f-red"       onclick="filterSchemes('red', this)">🔴 Red (2)</button>
+    <button class="filter-btn f-black"     onclick="filterSchemes('black', this)">⚫ Black (2)</button>
+    <button class="filter-btn"             onclick="filterSchemes('chequered', this)">🏁 Done (2)</button>
+  </div>
+
+  <div class="row">
+    <!-- Left: Scheme Cards -->
+    <div class="col-lg-8" id="schemes-container">
+      <div class="section-title">LIVE RACE FLAGS — ALL WARDS</div>
+
+      <!-- BLACK FLAG 1 -->
+      <div class="scheme-card flag-black safety-car-highlight" data-flag="black">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <div>
+            <span class="flag-badge badge-black">⚫ BLACK FLAG</span>
+            <span class="safety-car-tag ms-2">🚨 SAFETY CAR</span>
+          </div>
+          <button class="rti-btn" onclick="showRTI('grid-mod')">📄 RTI AUTO-DRAFT</button>
+        </div>
+        <div class="scheme-name mt-2">Grid Modernization Phase II</div>
+        <div class="scheme-meta">Ward 2 — Arya Nagar &nbsp;|&nbsp; Smart City &nbsp;|&nbsp; M/S Shakti Infrastructure Pvt. Ltd.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-black" style="width:18%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹14.28 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ff4444">42 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ff4444">11</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="scheme-stat">18% complete &nbsp;|&nbsp; Last activity: 35 days ago</span>
+          <span class="penalty-badge">+6 PENALTY LAPS</span>
+        </div>
+        <div class="mt-2" style="font-size:0.75rem;color:#ff6b00;">⚠ Funds released ₹9.80 Cr — contractor unresponsive. Payment frozen.</div>
+      </div>
+
+      <!-- BLACK FLAG 2 -->
+      <div class="scheme-card flag-black safety-car-highlight" data-flag="black">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <div>
+            <span class="flag-badge badge-black">⚫ BLACK FLAG</span>
+            <span class="safety-car-tag ms-2">🚨 SAFETY CAR</span>
+          </div>
+          <button class="rti-btn" onclick="showRTI('pm-awas')">📄 RTI AUTO-DRAFT</button>
+        </div>
+        <div class="scheme-name mt-2">PM Awas Yojana — Block C Housing</div>
+        <div class="scheme-meta">Ward 4 — Govind Nagar &nbsp;|&nbsp; Housing &nbsp;|&nbsp; M/S Nirmaan Builders</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-black" style="width:22%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹18.00 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ff4444">38 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ff4444">9</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="scheme-stat">22% complete &nbsp;|&nbsp; Last activity: 40 days ago</span>
+          <span class="penalty-badge">+5 PENALTY LAPS</span>
+        </div>
+        <div class="mt-2" style="font-size:0.75rem;color:#ff6b00;">⚠ ₹12 Cr released. Site abandoned. RTI generated.</div>
+      </div>
+
+      <!-- RED FLAG 1 -->
+      <div class="scheme-card flag-red" data-flag="red">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <span class="flag-badge badge-red">🔴 RED FLAG</span>
+        </div>
+        <div class="scheme-name mt-2">Landfall Bio-Remediation</div>
+        <div class="scheme-meta">Ward 3 — Civil Lines &nbsp;|&nbsp; Environment &nbsp;|&nbsp; M/S GreenEarth Pvt. Ltd.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-red" style="width:30%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹22.50 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ffc107">20 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ffc107">8</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="scheme-stat">30% complete</span>
+          <span class="penalty-badge">+2 PENALTY LAPS</span>
+        </div>
+        <div class="mt-2" style="font-size:0.75rem;color:#dc3545;">Escalated to DC. Written explanation demanded from Ward Officer.</div>
+      </div>
+
+      <!-- RED FLAG 2 -->
+      <div class="scheme-card flag-red" data-flag="red">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <span class="flag-badge badge-red">🔴 RED FLAG</span>
+        </div>
+        <div class="scheme-name mt-2">Community Centre Renovation</div>
+        <div class="scheme-meta">Ward 4 — Govind Nagar &nbsp;|&nbsp; Social &nbsp;|&nbsp; M/S Civil Pride Works</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-red" style="width:35%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹5.50 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ffc107">17 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#ffc107">6</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2"><span class="scheme-stat">35% complete</span></div>
+      </div>
+
+      <!-- YELLOW FLAG 1 -->
+      <div class="scheme-card flag-yellow" data-flag="yellow">
+        <span class="flag-badge badge-yellow">🟡 YELLOW FLAG</span>
+        <div class="scheme-name mt-2">Panki Water Treatment Upgrade</div>
+        <div class="scheme-meta">Ward 2 — Arya Nagar &nbsp;|&nbsp; Water &nbsp;|&nbsp; M/S AquaTech Solutions</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-yellow" style="width:44%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹8.12 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>12 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>2</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="scheme-stat">44% complete</span>
+          <span class="penalty-badge">+1 PENALTY LAP</span>
+        </div>
+        <div class="mt-2" style="font-size:0.75rem;color:#ffc107;">SMS sent to contractor. Ward Officer notified.</div>
+      </div>
+
+      <!-- YELLOW FLAG 2 -->
+      <div class="scheme-card flag-yellow" data-flag="yellow">
+        <span class="flag-badge badge-yellow">🟡 YELLOW FLAG</span>
+        <div class="scheme-name mt-2">Solar Street Lighting — Phase I</div>
+        <div class="scheme-meta">Ward 3 — Civil Lines &nbsp;|&nbsp; Energy &nbsp;|&nbsp; M/S SunPower Infra</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-yellow" style="width:55%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹3.40 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>9 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>4</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2"><span class="scheme-stat">55% complete</span></div>
+      </div>
+
+      <!-- GREEN FLAGS -->
+      <div class="scheme-card flag-green" data-flag="green">
+        <span class="flag-badge badge-green">🟢 GREEN FLAG</span>
+        <div class="scheme-name mt-2">Primary School Building — Sector 3</div>
+        <div class="scheme-meta">Ward 1 — Kidwai Nagar &nbsp;|&nbsp; Education &nbsp;|&nbsp; M/S Vidya Constructions</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-green" style="width:62%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹6.20 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>4 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>1</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2"><span class="scheme-stat">62% complete — on track</span></div>
+      </div>
+
+      <div class="scheme-card flag-green" data-flag="green">
+        <span class="flag-badge badge-green">🟢 GREEN FLAG</span>
+        <div class="scheme-name mt-2">Kanpur Primary Health Centre Upgrade</div>
+        <div class="scheme-meta">Ward 4 — Govind Nagar &nbsp;|&nbsp; Health &nbsp;|&nbsp; M/S MediConstruct Pvt. Ltd.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-green" style="width:71%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹9.60 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>3 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>1</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2"><span class="scheme-stat">71% complete</span></div>
+      </div>
+
+      <div class="scheme-card flag-green" data-flag="green">
+        <span class="flag-badge badge-green">🟢 GREEN FLAG</span>
+        <div class="scheme-name mt-2">Civil Lines Footpath Renovation</div>
+        <div class="scheme-meta">Ward 3 — Civil Lines &nbsp;|&nbsp; Infrastructure &nbsp;|&nbsp; M/S Urban Pave Co.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-green" style="width:80%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹1.85 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>3 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>0</strong><br>Citizen Reports</div></div>
+        </div>
+        <div class="mt-2"><span class="scheme-stat">80% complete — nearly done</span></div>
+      </div>
+
+      <div class="scheme-card flag-green" data-flag="green">
+        <span class="flag-badge badge-green">🟢 GREEN FLAG</span>
+        <div class="scheme-name mt-2">E-Waste Collection Centre</div>
+        <div class="scheme-meta">Ward 4 — Govind Nagar &nbsp;|&nbsp; Environment &nbsp;|&nbsp; M/S EcoDispose Ltd.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-green" style="width:68%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹1.20 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>5 days</strong><br>Delayed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>0</strong><br>Citizen Reports</div></div>
+        </div>
+      </div>
+
+      <!-- CHEQUERED -->
+      <div class="scheme-card flag-chequered" data-flag="chequered">
+        <span class="flag-badge badge-chequered">🏁 CHEQUERED — RACE WIN</span>
+        <div class="scheme-name mt-2">Road Resurfacing — MG Marg</div>
+        <div class="scheme-meta">Ward 1 — Kidwai Nagar &nbsp;|&nbsp; Infrastructure &nbsp;|&nbsp; M/S Bharat Roads Pvt. Ltd.</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-chequered" style="width:100%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹4.80 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#2ecc71">On time</strong><br>Completed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>0</strong><br>Citizen Reports</div></div>
+        </div>
+      </div>
+
+      <div class="scheme-card flag-chequered" data-flag="chequered">
+        <span class="flag-badge badge-chequered">🏁 CHEQUERED — RACE WIN</span>
+        <div class="scheme-name mt-2">Drainage Canal Desilting</div>
+        <div class="scheme-meta">Ward 4 — Govind Nagar &nbsp;|&nbsp; Sanitation &nbsp;|&nbsp; M/S ClearFlow Infra</div>
+        <div class="progress-bar-custom"><div class="progress-fill fill-chequered" style="width:100%"></div></div>
+        <div class="row g-2">
+          <div class="col-4"><div class="scheme-stat"><strong>₹2.10 Cr</strong><br>Budget</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong style="color:#2ecc71">On time</strong><br>Completed</div></div>
+          <div class="col-4"><div class="scheme-stat"><strong>0</strong><br>Citizen Reports</div></div>
+        </div>
+      </div>
+
+    </div><!-- /col-8 -->
+
+    <!-- Right: Standings + Chart -->
+    <div class="col-lg-4">
+      <div class="section-title">CONSTRUCTOR STANDINGS</div>
+      <div class="standings-card mb-3">
+        <div class="standings-title">Ward Leaderboard — On-Time Rate</div>
+        <div class="ward-row">
+          <span class="ward-rank">01</span>
+          <span class="ward-name">Ward 1 — Kidwai Nagar</span>
+          <div class="ward-bar-bg"><div class="ward-bar" style="width:85%;background:#198754"></div></div>
+          <span class="ward-pct">85%</span>
+        </div>
+        <div class="ward-row">
+          <span class="ward-rank">02</span>
+          <span class="ward-name">Ward 3 — Civil Lines</span>
+          <div class="ward-bar-bg"><div class="ward-bar" style="width:62%;background:#ffc107"></div></div>
+          <span class="ward-pct">62%</span>
+        </div>
+        <div class="ward-row">
+          <span class="ward-rank">03</span>
+          <span class="ward-name">Ward 4 — Govind Nagar</span>
+          <div class="ward-bar-bg"><div class="ward-bar" style="width:48%;background:#fd7e14"></div></div>
+          <span class="ward-pct">48%</span>
+        </div>
+        <div class="ward-row">
+          <span class="ward-rank" style="color:#666">04</span>
+          <span class="ward-name" style="color:#666">Ward 2 — Arya Nagar</span>
+          <div class="ward-bar-bg"><div class="ward-bar" style="width:30%;background:#dc3545"></div></div>
+          <span class="ward-pct" style="color:#dc3545">30%</span>
+        </div>
+        <div style="font-size:0.72rem;color:#555;margin-top:10px;">Ranked by on-time scheme completion rate. Publicly visible.</div>
+      </div>
+
+      <!-- Flag Distribution Chart -->
+      <div class="standings-card mb-3">
+        <div class="standings-title">Flag Distribution</div>
+        <canvas id="flagChart" height="180"></canvas>
+      </div>
+
+      <!-- Fund Summary -->
+      <div class="standings-card">
+        <div class="standings-title">Fund Flow Monitor</div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary">
+          <span style="font-size:0.82rem;color:#888">Total Sanctioned</span>
+          <span style="font-size:0.82rem;font-weight:700">₹88.5 Cr</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary">
+          <span style="font-size:0.82rem;color:#888">Funds Released</span>
+          <span style="font-size:0.82rem;font-weight:700;color:#ffc107">₹56.2 Cr</span>
+        </div>
+        <div class="d-flex justify-content-between py-2 border-bottom border-secondary">
+          <span style="font-size:0.82rem;color:#888">Payments Frozen</span>
+          <span style="font-size:0.82rem;font-weight:700;color:#dc3545">₹21.8 Cr</span>
+        </div>
+        <div class="d-flex justify-content-between py-2">
+          <span style="font-size:0.82rem;color:#888">Pending Release</span>
+          <span style="font-size:0.82rem;font-weight:700;color:#2ecc71">₹32.3 Cr</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RTI Modal -->
+<div class="rti-modal" id="rtiModal" onclick="hideRTI(event)">
+  <div class="rti-box" onclick="event.stopPropagation()">
+    <h5>📄 RTI APPLICATION — AUTO-GENERATED</h5>
+    <p style="font-size:0.8rem;color:#888;margin-bottom:14px;">Black Flag triggered. Citizen can download, sign, and submit.</p>
+    <div id="rtiContent"></div>
+    <div class="mt-4 d-flex gap-2">
+      <button class="rti-btn w-100" style="padding:10px;" onclick="alert('✅ RTI_SchemeGati.pdf downloaded!\n\nIn the real system, ReportLab generates this PDF server-side.')">⬇ DOWNLOAD RTI PDF</button>
+      <button onclick="hideRTI()" style="background:#222;border:1px solid #444;color:#ccc;border-radius:6px;padding:10px;width:100%;cursor:pointer;">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Flag distribution chart
+const ctx = document.getElementById('flagChart').getContext('2d');
+new Chart(ctx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Green', 'Yellow', 'Red', 'Black', 'Chequered'],
+    datasets: [{
+      data: [4, 2, 2, 2, 2],
+      backgroundColor: ['#198754','#ffc107','#dc3545','#444','#f0f0f0'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color: '#888', font: { size: 11 } } } },
+    cutout: '65%'
+  }
+});
+
+// Filter schemes
+function filterSchemes(flag, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.scheme-card').forEach(card => {
+    if (flag === 'all' || card.dataset.flag === flag) {
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// RTI data
+const rtiData = {
+  'grid-mod': {
+    name: 'Grid Modernization Phase II',
+    id: 'UP/KNP/W2/2024/003',
+    ward: 'Ward 2 — Arya Nagar',
+    contractor: 'M/S Shakti Infrastructure Pvt. Ltd.',
+    budget: '₹14,28,00,000',
+    released: '₹9,80,00,000',
+    delay: '42 days',
+    deadline: '10 Sep 2024',
+  },
+  'pm-awas': {
+    name: 'PM Awas Yojana — Block C Housing',
+    id: 'UP/KNP/W4/2024/009',
+    ward: 'Ward 4 — Govind Nagar',
+    contractor: 'M/S Nirmaan Builders',
+    budget: '₹18,00,00,000',
+    released: '₹12,00,00,000',
+    delay: '38 days',
+    deadline: '15 May 2024',
+  }
+};
+
+function showRTI(id) {
+  const d = rtiData[id];
+  document.getElementById('rtiContent').innerHTML = `
+    <div class="rti-field"><strong>Scheme Name</strong>${d.name}</div>
+    <div class="rti-field"><strong>Scheme ID</strong>${d.id}</div>
+    <div class="rti-field"><strong>Ward / Location</strong>${d.ward}</div>
+    <div class="rti-field"><strong>Contractor</strong>${d.contractor}</div>
+    <div class="rti-field"><strong>Budget Sanctioned</strong>${d.budget}</div>
+    <div class="rti-field" style="border-left-color:#e10600"><strong>Funds Released</strong>${d.released}</div>
+    <div class="rti-field" style="border-left-color:#e10600"><strong>Delay</strong>${d.delay} beyond deadline of ${d.deadline}</div>
+    <div class="rti-field" style="border-left-color:#666"><strong>Legal Section</strong>RTI Act 2005 — Section 6(1)</div>
+  `;
+  document.getElementById('rtiModal').classList.add('show');
+}
+
+function hideRTI(e) {
+  if (!e || e.target === document.getElementById('rtiModal')) {
+    document.getElementById('rtiModal').classList.remove('show');
+  }
+}
+</script>
+</body>
+</html>
