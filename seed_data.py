@@ -1,6 +1,6 @@
 """
 Scheme Gati — Demo Seed Data
-12 realistic schemes across 4 wards in Kanpur Urban.
+12 realistic schemes across 4 wards in Kanpur Urban..
 All flag states represented for a complete demo.
 """
 SCHEMES = [
@@ -24,6 +24,7 @@ SCHEMES = [
         "flag": "chequered",
         "note": "Completed on time. Race win."
     },
+    
     {
         "id": "UP/KNP/W1/2024/002",
         "name": "Primary School Building — Sector 3",
